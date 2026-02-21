@@ -3,176 +3,200 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Esports Platform Ultimate</title>
+<title>Neon Cyber Arena - CYBER GOD MODE</title>
 
 <style>
 body{
 margin:0;
 font-family:Arial;
-background:#0b0f1a;
+background:#060b18;
 color:white;
+}
+h1{
 text-align:center;
-overflow-x:hidden;
+color:cyan;
+text-shadow:0 0 15px cyan,0 0 30px purple;
 }
-
-header{
-background:#111827;
-padding:20px;
-font-size:28px;
-font-weight:bold;
-color:#00f0ff;
-}
-
+.screen{display:none;padding:20px;}
 .card{
-background:#1f2937;
-margin:20px;
-padding:20px;
-border-radius:20px;
-box-shadow:0 0 25px rgba(0,255,255,0.2);
+background:#111827;
+padding:15px;
+border-radius:12px;
+margin:10px 0;
+box-shadow:0 0 20px rgba(0,255,255,.2);
 }
-
 button{
-background:#00c2d1;
+padding:8px 14px;
+margin:6px;
 border:none;
-padding:12px 25px;
-border-radius:10px;
+border-radius:8px;
+background:linear-gradient(45deg,cyan,purple);
 color:black;
 font-weight:bold;
 cursor:pointer;
 }
-
-button:hover{
-background:#00f0ff;
+.progress{
+background:#222;
+height:16px;
+border-radius:8px;
+overflow:hidden;
+margin-top:6px;
 }
-
-canvas{
-background:#111;
-border-radius:20px;
-margin-top:15px;
+.bar{
+height:100%;
+background:linear-gradient(90deg,cyan,purple);
+width:0%;
 }
 </style>
 </head>
-
 <body>
 
-<header>👑 Esports Platform Ultimate</header>
+<h1>⚡ CYBER GOD MODE ⚡</h1>
 
+<div id="login" class="screen">
 <div class="card">
-🔥 30+ فوز | ELO +50 Tokens
+<input id="username" placeholder="اسم اللاعب">
+<button onclick="login()">دخول</button>
+</div>
 </div>
 
+<div id="lobby" class="screen">
 <div class="card">
-🏆 Ranking  
-<p>ELO: <span id="elo">1000</span></p>
-<button onclick="startGame()">لعب مباراة</button>
-</div>
+<h3 id="playerName"></h3>
+<p>Level: <span id="level"></span></p>
+<p>ELO: <span id="elo"></span> (<span id="rank"></span>)</p>
+<p>Coins: <span id="coins"></span></p>
 
-<div class="card">
-🧠 AI تكتيكي  
-<p id="aiStyle">أسلوبك: تكتيكي</p>
-<button onclick="analyzeAI()">تحليل أسلوبي</button>
-</div>
+<p>Battle Pass</p>
+<div class="progress"><div class="bar" id="bpBar"></div></div>
 
-<div class="card" id="arena">
-🎮 Arena جاهزة للمعركة
+<button onclick="startRanked()">🏆 Ranked</button>
+<button onclick="startBoss()">👾 Boss</button>
+<button onclick="dailyReward()">📅 Daily</button>
+<button onclick="openLoot()">🎁 Loot Box (50)</button>
+<button onclick="go('login')">خروج</button>
+</div>
 </div>
 
 <script>
-let elo = 1000;
-let gameStarted = false;
-let canvas, ctx;
-let player, enemy;
-let score = 0;
-let bestScore = 0;
+let players=JSON.parse(localStorage.players||"[]");
+let current=null;
 
-function analyzeAI(){
-let styles=["هجومي","دفاعي","تكتيكي","سريع","محترف"];
-let randomStyle = styles[Math.floor(Math.random()*styles.length)];
-document.getElementById("aiStyle").innerText="أسلوبك: "+randomStyle;
+function save(){localStorage.players=JSON.stringify(players)}
+
+function login(){
+let name=username.value;
+if(!name)return;
+let p=players.find(x=>x.name===name);
+if(!p){
+p={name,level:1,xp:0,elo:1000,coins:100,bp:0};
+players.push(p);
+save();
 }
-
-function startGame(){
-if(gameStarted) return;
-gameStarted = true;
-
-document.getElementById("arena").innerHTML="";
-canvas = document.createElement("canvas");
-canvas.width = window.innerWidth - 40;
-canvas.height = 300;
-document.getElementById("arena").appendChild(canvas);
-
-ctx = canvas.getContext("2d");
-
-player = { x:50, y:150, size:18 };
-enemy = { x:canvas.width, y:Math.random()*260, size:18, speed:4 };
-score = 0;
-
-canvas.addEventListener("touchmove",movePlayer);
-canvas.addEventListener("mousemove",movePlayer);
-
+current=p;
 update();
-}
-
-function movePlayer(e){
-let rect = canvas.getBoundingClientRect();
-let y = e.touches ? e.touches[0].clientY : e.clientY;
-player.y = y - rect.top;
+go('lobby');
 }
 
 function update(){
-ctx.clearRect(0,0,canvas.width,canvas.height);
-
-enemy.x -= enemy.speed;
-
-if(enemy.x < 0){
-enemy.x = canvas.width;
-enemy.y = Math.random()*260;
-score++;
-enemy.speed += 0.2;
+playerName.innerText=current.name;
+level.innerText=current.level;
+elo.innerText=current.elo;
+coins.innerText=current.coins;
+rank.innerText=getRank(current.elo);
+bpBar.style.width=(current.bp%100)+"%";
 }
 
-let dx = player.x - enemy.x;
-let dy = player.y - enemy.y;
-let dist = Math.sqrt(dx*dx + dy*dy);
+function go(id){
+document.querySelectorAll(".screen").forEach(s=>s.style.display="none");
+document.getElementById(id).style.display="block";
+}
 
-if(dist < player.size + enemy.size){
-endGame();
+function addXP(x){
+current.xp+=x;
+current.bp+=x;
+if(current.xp>=current.level*100){
+current.xp=0;
+current.level++;
+}
+save();
+update();
+}
+
+function getRank(e){
+if(e<1200)return"Bronze";
+if(e<1400)return"Silver";
+if(e<1600)return"Gold";
+if(e<1800)return"Platinum";
+return"Cyber God";
+}
+
+function startRanked(){
+let win=Math.random()>0.4;
+let opponent=1000+Math.random()*800;
+let k=32;
+let expected=1/(1+Math.pow(10,(opponent-current.elo)/400));
+if(win){
+current.elo+=Math.round(k*(1-expected));
+addXP(50);
+current.coins+=20;
+alert("🏆 فوز Ranked!");
+}else{
+current.elo-=Math.round(k*(expected));
+alert("❌ خسارة Ranked");
+}
+save();
+update();
+}
+
+function startBoss(){
+let win=Math.random()>0.6;
+if(win){
+current.elo+=40;
+addXP(120);
+current.coins+=60;
+alert("👾 هزمت الـ Boss!");
+}else{
+current.elo-=20;
+alert("👾 خسرت أمام الـ Boss!");
+}
+save();
+update();
+}
+
+function dailyReward(){
+let today=new Date().toDateString();
+if(localStorage.daily===today){
+alert("تم استلام مكافأة اليوم");
 return;
 }
-
-drawCircle(player,"cyan");
-drawCircle(enemy,"red");
-
-ctx.fillStyle="white";
-ctx.fillText("Score: "+score,10,20);
-ctx.fillText("Best: "+bestScore,10,40);
-
-requestAnimationFrame(update);
+localStorage.daily=today;
+current.coins+=30;
+addXP(40);
+alert("📅 مكافأة يومية!");
+save();
+update();
 }
 
-function drawCircle(obj,color){
-ctx.beginPath();
-ctx.arc(obj.x,obj.y,obj.size,0,Math.PI*2);
-ctx.fillStyle=color;
-ctx.fill();
-}
-
-function endGame(){
-if(score > bestScore) bestScore = score;
-
-if(score >= 10){
-elo += 25;
+function openLoot(){
+if(current.coins<50){alert("عملات غير كافية");return;}
+current.coins-=50;
+let reward=Math.random();
+if(reward<0.4){
+current.coins+=100;
+alert("💰 ربحت 100 Coins!");
+}else if(reward<0.7){
+addXP(80);
+alert("⭐ ربحت 80 XP!");
 }else{
-elo -= 10;
+current.elo+=50;
+alert("⚡ Bonus +50 ELO!");
+}
+save();
+update();
 }
 
-document.getElementById("elo").innerText = elo;
-
-alert("انتهت المباراة 🔥\nScore: "+score+"\nELO الحالي: "+elo);
-
-gameStarted = false;
-document.getElementById("arena").innerHTML="🎮 Arena جاهزة للمعركة";
-}
+go('login');
 </script>
 
 </body>

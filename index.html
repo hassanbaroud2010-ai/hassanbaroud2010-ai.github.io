@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neon Cyber Arena - CYBER GOD MODE</title>
+<title>Neon Cyber Arena - Ball Sort Ranked</title>
 
 <style>
 body{
@@ -11,76 +11,86 @@ margin:0;
 font-family:Arial;
 background:#060b18;
 color:white;
+text-align:center;
 }
 h1{
-text-align:center;
 color:cyan;
-text-shadow:0 0 15px cyan,0 0 30px purple;
+text-shadow:0 0 15px cyan;
 }
-.screen{display:none;padding:20px;}
-.card{
-background:#111827;
-padding:15px;
-border-radius:12px;
-margin:10px 0;
-box-shadow:0 0 20px rgba(0,255,255,.2);
-}
+.screen{display:none;padding:15px;}
 button{
-padding:8px 14px;
+padding:10px 15px;
 margin:6px;
 border:none;
 border-radius:8px;
 background:linear-gradient(45deg,cyan,purple);
 color:black;
 font-weight:bold;
+}
+.tubes{
+display:flex;
+justify-content:center;
+flex-wrap:wrap;
+margin-top:20px;
+}
+.tube{
+width:60px;
+height:200px;
+border:2px solid cyan;
+border-radius:10px;
+margin:10px;
+display:flex;
+flex-direction:column-reverse;
+padding:5px;
 cursor:pointer;
 }
-.progress{
-background:#222;
-height:16px;
-border-radius:8px;
-overflow:hidden;
-margin-top:6px;
+.ball{
+width:100%;
+height:35px;
+border-radius:50%;
+margin-bottom:5px;
 }
-.bar{
-height:100%;
-background:linear-gradient(90deg,cyan,purple);
-width:0%;
+.popup{
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:#111827;
+padding:20px;
+border-radius:15px;
+box-shadow:0 0 25px cyan;
+color:cyan;
+font-size:18px;
+z-index:9999;
 }
 </style>
 </head>
 <body>
 
-<h1>⚡ CYBER GOD MODE ⚡</h1>
+<h1>⚡ Ball Sort Ranked ⚡</h1>
 
 <div id="login" class="screen">
-<div class="card">
 <input id="username" placeholder="اسم اللاعب">
 <button onclick="login()">دخول</button>
 </div>
-</div>
 
 <div id="lobby" class="screen">
-<div class="card">
-<h3 id="playerName"></h3>
-<p>Level: <span id="level"></span></p>
-<p>ELO: <span id="elo"></span> (<span id="rank"></span>)</p>
-<p>Coins: <span id="coins"></span></p>
-
-<p>Battle Pass</p>
-<div class="progress"><div class="bar" id="bpBar"></div></div>
-
-<button onclick="startRanked()">🏆 Ranked</button>
-<button onclick="startBoss()">👾 Boss</button>
-<button onclick="dailyReward()">📅 Daily</button>
-<button onclick="openLoot()">🎁 Loot Box (50)</button>
-<button onclick="go('login')">خروج</button>
+<p id="playerInfo"></p>
+<button onclick="startGame()">🎮 ابدأ Ranked</button>
 </div>
+
+<div id="game" class="screen">
+<p id="movesText"></p>
+<div class="tubes" id="tubes"></div>
+<button onclick="backLobby()">رجوع</button>
 </div>
 
 <script>
 let players=JSON.parse(localStorage.players||"[]");
 let current=null;
+let selected=null;
+let moves=0;
+let tubesData=[];
 
 function save(){localStorage.players=JSON.stringify(players)}
 
@@ -89,22 +99,20 @@ let name=username.value;
 if(!name)return;
 let p=players.find(x=>x.name===name);
 if(!p){
-p={name,level:1,xp:0,elo:1000,coins:100,bp:0};
+p={name,level:1,xp:0,elo:1000};
 players.push(p);
 save();
 }
 current=p;
-update();
-go('lobby');
+updateLobby();
+go("lobby");
 }
 
-function update(){
-playerName.innerText=current.name;
-level.innerText=current.level;
-elo.innerText=current.elo;
-coins.innerText=current.coins;
-rank.innerText=getRank(current.elo);
-bpBar.style.width=(current.bp%100)+"%";
+function updateLobby(){
+playerInfo.innerHTML=
+"👤 "+current.name+
+"<br>Level: "+current.level+
+"<br>ELO: "+current.elo;
 }
 
 function go(id){
@@ -112,91 +120,98 @@ document.querySelectorAll(".screen").forEach(s=>s.style.display="none");
 document.getElementById(id).style.display="block";
 }
 
-function addXP(x){
-current.xp+=x;
-current.bp+=x;
+function startGame(){
+moves=0;
+movesText.innerText="الحركات: 0";
+tubesData=[
+["red","blue","green","yellow"],
+["yellow","green","blue","red"],
+["blue","red","yellow","green"],
+[],
+[]
+];
+render();
+go("game");
+}
+
+function render(){
+tubes.innerHTML="";
+tubesData.forEach((tube,i)=>{
+let div=document.createElement("div");
+div.className="tube";
+div.onclick=()=>selectTube(i);
+tube.forEach(color=>{
+let ball=document.createElement("div");
+ball.className="ball";
+ball.style.background=color;
+div.appendChild(ball);
+});
+tubes.appendChild(div);
+});
+}
+
+function selectTube(i){
+if(selected===null){
+selected=i;
+return;
+}
+if(selected===i){selected=null;return;}
+
+let from=tubesData[selected];
+let to=tubesData[i];
+
+if(from.length===0){selected=null;return;}
+if(to.length>=4){selected=null;return;}
+
+let color=from[from.length-1];
+if(to.length===0||to[to.length-1]===color){
+to.push(from.pop());
+moves++;
+movesText.innerText="الحركات: "+moves;
+checkWin();
+}
+selected=null;
+render();
+}
+
+function checkWin(){
+let win=tubesData.every(tube=>{
+if(tube.length===0)return true;
+return tube.length===4 && tube.every(c=>c===tube[0]);
+});
+if(win){
+rankWin();
+}
+}
+
+function rankWin(){
+let opponent=1000+Math.random()*500;
+let k=32;
+let expected=1/(1+Math.pow(10,(opponent-current.elo)/400));
+current.elo+=Math.round(k*(1-expected));
+current.xp+=50;
 if(current.xp>=current.level*100){
 current.xp=0;
 current.level++;
 }
 save();
-update();
+showPopup("🏆 فوز Ranked + ELO");
+setTimeout(()=>{updateLobby();go("lobby");},1500);
 }
 
-function getRank(e){
-if(e<1200)return"Bronze";
-if(e<1400)return"Silver";
-if(e<1600)return"Gold";
-if(e<1800)return"Platinum";
-return"Cyber God";
+function showPopup(msg){
+let p=document.createElement("div");
+p.className="popup";
+p.innerHTML=msg;
+document.body.appendChild(p);
+setTimeout(()=>p.remove(),1500);
 }
 
-function startRanked(){
-let win=Math.random()>0.4;
-let opponent=1000+Math.random()*800;
-let k=32;
-let expected=1/(1+Math.pow(10,(opponent-current.elo)/400));
-if(win){
-current.elo+=Math.round(k*(1-expected));
-addXP(50);
-current.coins+=20;
-alert("🏆 فوز Ranked!");
-}else{
-current.elo-=Math.round(k*(expected));
-alert("❌ خسارة Ranked");
-}
-save();
-update();
+function backLobby(){
+go("lobby");
 }
 
-function startBoss(){
-let win=Math.random()>0.6;
-if(win){
-current.elo+=40;
-addXP(120);
-current.coins+=60;
-alert("👾 هزمت الـ Boss!");
-}else{
-current.elo-=20;
-alert("👾 خسرت أمام الـ Boss!");
-}
-save();
-update();
-}
-
-function dailyReward(){
-let today=new Date().toDateString();
-if(localStorage.daily===today){
-alert("تم استلام مكافأة اليوم");
-return;
-}
-localStorage.daily=today;
-current.coins+=30;
-addXP(40);
-alert("📅 مكافأة يومية!");
-save();
-update();
-}
-
-function openLoot(){
-if(current.coins<50){alert("عملات غير كافية");return;}
-current.coins-=50;
-let reward=Math.random();
-if(reward<0.4){
-current.coins+=100;
-alert("💰 ربحت 100 Coins!");
-}else if(reward<0.7){
-addXP(80);
-alert("⭐ ربحت 80 XP!");
-}else{
-current.elo+=50;
-alert("⚡ Bonus +50 ELO!");
-}
-save();
-update();
-}
-
-go('login');
+go("login");
 </script>
 
 </body>

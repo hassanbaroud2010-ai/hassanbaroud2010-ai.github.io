@@ -1,221 +1,67 @@
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Esports Platform Ultimate</title>
-
-<style>
-body{
-margin:0;
-font-family:Arial;
-background:#0b0f1a;
-color:white;
-overflow-x:hidden;
-}
-header{
-background:#111827;
-padding:20px;
-text-align:center;
-font-size:26px;
-color:#00eaff;
-font-weight:bold;
-}
-.container{
-display:flex;
-flex-wrap:wrap;
-justify-content:center;
-gap:20px;
-padding:20px;
-}
-.card{
-background:#1f2937;
-padding:20px;
-border-radius:15px;
-width:320px;
-box-shadow:0 0 15px rgba(0,255,255,0.15);
-}
-button{
-background:#00eaff;
-border:none;
-padding:8px 15px;
-border-radius:8px;
-cursor:pointer;
-font-weight:bold;
-margin-top:5px;
-}
-button:hover{
-background:#00bcd4;
-}
-input{
-padding:6px;
-border-radius:6px;
-border:none;
-margin-top:5px;
-}
-table{
-width:100%;
-margin-top:10px;
-border-collapse:collapse;
-}
-th,td{
-padding:6px;
-text-align:center;
-}
-th{color:#00eaff;}
-.arena{
-margin:20px auto;
-width:90%;
-max-width:800px;
-height:250px;
-background:linear-gradient(135deg,#0f172a,#1e293b);
-border-radius:20px;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:22px;
-color:#00eaff;
-box-shadow:0 0 20px rgba(0,255,255,0.2);
-}
-</style>
-</head>
-
-<body>
-
-<header>👑 Esports Platform Ultimate</header>
-
-<div class="arena" id="arena">🎮 Arena Ready</div>
-
-<div class="container">
-
-<!-- Ranking -->
-<div class="card">
-<h3>🏆 Ranking</h3>
-<p>ELO: <span id="elo">1000</span></p>
-<button onclick="playMatch()">لعب مباراة</button>
-</div>
-
-<!-- AI Simulation -->
-<div class="card">
-<h3>🧠 AI تكتيكي</h3>
-<p id="aiStyle">أسلوبك: متوازن</p>
-<button onclick="analyzeAI()">تحليل أسلوبي</button>
-</div>
-
-<!-- Clans -->
-<div class="card">
-<h3>🛡 نظام Clans</h3>
-<input id="clanName" placeholder="اسم الكلان">
-<button onclick="createClan()">إنشاء</button>
-<p id="clanResult"></p>
-</div>
-
-<!-- Economy -->
-<div class="card">
-<h3>💰 اقتصاد Tokens</h3>
-<p>Tokens: <span id="tokens">500</span></p>
-<button onclick="buyItem()">شراء Skin (100)</button>
-</div>
-
-<!-- NFT Fake -->
-<div class="card">
-<h3>🔥 NFT وهمي</h3>
-<button onclick="mintNFT()">Mint NFT</button>
-<p id="nftResult"></p>
-</div>
-
-<!-- Replay -->
-<div class="card">
-<h3>🎥 Replay</h3>
-<button onclick="saveReplay()">حفظ مباراة</button>
-<button onclick="watchReplay()">مشاهدة</button>
-<p id="replayData"></p>
-</div>
-
-<!-- Seasons -->
-<div class="card">
-<h3>🏆 Seasons</h3>
-<p>Season: <span id="season">1</span></p>
-<button onclick="nextSeason()">موسم جديد</button>
-</div>
-
-<!-- World Ranking -->
-<div class="card">
-<h3>🌍 Global Ranking</h3>
-<table>
-<tr><th>اللاعب</th><th>ELO</th></tr>
-<tr><td>Alpha</td><td>1500</td></tr>
-<tr><td>Beta</td><td>1300</td></tr>
-<tr><td>Gamma</td><td>1100</td></tr>
-</table>
-</div>
-
-</div>
-
 <script>
-let elo=1000;
-let tokens=500;
-let season=1;
-let lastMatch="";
+let canvas = document.createElement("canvas");
+canvas.width = window.innerWidth - 20;
+canvas.height = 300;
+canvas.style.background = "#111";
+canvas.style.borderRadius = "20px";
+canvas.style.display = "block";
+canvas.style.margin = "20px auto";
+document.body.appendChild(canvas);
 
-function playMatch(){
-let win=Math.random()>0.5;
-if(win){
-elo+=30;
-tokens+=50;
-arena.innerHTML="🔥 فوز! +30 ELO +50 Tokens";
-lastMatch="Win +30";
-}else{
-elo-=20;
-arena.innerHTML="❌ خسارة -20 ELO";
-lastMatch="Lose -20";
-}
-document.getElementById("elo").innerText=elo;
-document.getElementById("tokens").innerText=tokens;
-}
+let ctx = canvas.getContext("2d");
 
-function analyzeAI(){
-let styles=["هجومي","دفاعي","تكتيكي","سريع","متوازن"];
-let style=styles[Math.floor(Math.random()*styles.length)];
-document.getElementById("aiStyle").innerText="أسلوبك: "+style;
+let player = { x:50, y:150, size:20 };
+let enemy = { x:canvas.width, y:Math.random()*260, size:20, speed:4 };
+let score = 0;
+let gameOver = false;
+
+function drawCircle(obj,color){
+ctx.beginPath();
+ctx.arc(obj.x,obj.y,obj.size,0,Math.PI*2);
+ctx.fillStyle=color;
+ctx.fill();
 }
 
-function createClan(){
-let name=document.getElementById("clanName").value;
-if(name!=""){
-document.getElementById("clanResult").innerText="تم إنشاء Clan: "+name;
-}
+function update(){
+if(gameOver) return;
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+enemy.x -= enemy.speed;
+
+if(enemy.x < 0){
+enemy.x = canvas.width;
+enemy.y = Math.random()*260;
+score++;
 }
 
-function buyItem(){
-if(tokens>=100){
-tokens-=100;
-document.getElementById("tokens").innerText=tokens;
-alert("تم شراء Skin بنجاح!");
-}
+let dx = player.x - enemy.x;
+let dy = player.y - enemy.y;
+let distance = Math.sqrt(dx*dx + dy*dy);
+
+if(distance < player.size + enemy.size){
+gameOver = true;
+alert("Game Over! Score: " + score);
 }
 
-function mintNFT(){
-let id=Math.floor(Math.random()*99999);
-document.getElementById("nftResult").innerText="NFT ID: "+id;
+drawCircle(player,"cyan");
+drawCircle(enemy,"red");
+
+ctx.fillStyle="white";
+ctx.fillText("Score: "+score,10,20);
+
+requestAnimationFrame(update);
 }
 
-function saveReplay(){
-localStorage.setItem("replay",lastMatch);
-}
+canvas.addEventListener("touchmove",function(e){
+let rect = canvas.getBoundingClientRect();
+player.y = e.touches[0].clientY - rect.top;
+});
 
-function watchReplay(){
-let data=localStorage.getItem("replay");
-document.getElementById("replayData").innerText=data?data:"لا يوجد Replay";
-}
+canvas.addEventListener("mousemove",function(e){
+let rect = canvas.getBoundingClientRect();
+player.y = e.clientY - rect.top;
+});
 
-function nextSeason(){
-season++;
-document.getElementById("season").innerText=season;
-elo=1000;
-document.getElementById("elo").innerText=elo;
-}
+update();
 </script>
-
-</body>
-  </html>

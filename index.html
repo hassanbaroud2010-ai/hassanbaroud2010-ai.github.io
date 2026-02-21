@@ -1,30 +1,125 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Esports Platform Ultimate</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:#0b0f1a;
+color:white;
+text-align:center;
+overflow-x:hidden;
+}
+
+header{
+background:#111827;
+padding:20px;
+font-size:28px;
+font-weight:bold;
+color:#00f0ff;
+}
+
+.card{
+background:#1f2937;
+margin:20px;
+padding:20px;
+border-radius:20px;
+box-shadow:0 0 25px rgba(0,255,255,0.2);
+}
+
+button{
+background:#00c2d1;
+border:none;
+padding:12px 25px;
+border-radius:10px;
+color:black;
+font-weight:bold;
+cursor:pointer;
+}
+
+button:hover{
+background:#00f0ff;
+}
+
+canvas{
+background:#111;
+border-radius:20px;
+margin-top:15px;
+}
+</style>
+</head>
+
+<body>
+
+<header>👑 Esports Platform Ultimate</header>
+
+<div class="card">
+🔥 30+ فوز | ELO +50 Tokens
+</div>
+
+<div class="card">
+🏆 Ranking  
+<p>ELO: <span id="elo">1000</span></p>
+<button onclick="startGame()">لعب مباراة</button>
+</div>
+
+<div class="card">
+🧠 AI تكتيكي  
+<p id="aiStyle">أسلوبك: تكتيكي</p>
+<button onclick="analyzeAI()">تحليل أسلوبي</button>
+</div>
+
+<div class="card" id="arena">
+🎮 Arena جاهزة للمعركة
+</div>
+
 <script>
-let canvas = document.createElement("canvas");
-canvas.width = window.innerWidth - 20;
-canvas.height = 300;
-canvas.style.background = "#111";
-canvas.style.borderRadius = "20px";
-canvas.style.display = "block";
-canvas.style.margin = "20px auto";
-document.body.appendChild(canvas);
-
-let ctx = canvas.getContext("2d");
-
-let player = { x:50, y:150, size:20 };
-let enemy = { x:canvas.width, y:Math.random()*260, size:20, speed:4 };
+let elo = 1000;
+let gameStarted = false;
+let canvas, ctx;
+let player, enemy;
 let score = 0;
-let gameOver = false;
+let bestScore = 0;
 
-function drawCircle(obj,color){
-ctx.beginPath();
-ctx.arc(obj.x,obj.y,obj.size,0,Math.PI*2);
-ctx.fillStyle=color;
-ctx.fill();
+function analyzeAI(){
+let styles=["هجومي","دفاعي","تكتيكي","سريع","محترف"];
+let randomStyle = styles[Math.floor(Math.random()*styles.length)];
+document.getElementById("aiStyle").innerText="أسلوبك: "+randomStyle;
+}
+
+function startGame(){
+if(gameStarted) return;
+gameStarted = true;
+
+document.getElementById("arena").innerHTML="";
+canvas = document.createElement("canvas");
+canvas.width = window.innerWidth - 40;
+canvas.height = 300;
+document.getElementById("arena").appendChild(canvas);
+
+ctx = canvas.getContext("2d");
+
+player = { x:50, y:150, size:18 };
+enemy = { x:canvas.width, y:Math.random()*260, size:18, speed:4 };
+score = 0;
+
+canvas.addEventListener("touchmove",movePlayer);
+canvas.addEventListener("mousemove",movePlayer);
+
+update();
+}
+
+function movePlayer(e){
+let rect = canvas.getBoundingClientRect();
+let y = e.touches ? e.touches[0].clientY : e.clientY;
+player.y = y - rect.top;
 }
 
 function update(){
-if(gameOver) return;
-
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
 enemy.x -= enemy.speed;
@@ -33,15 +128,16 @@ if(enemy.x < 0){
 enemy.x = canvas.width;
 enemy.y = Math.random()*260;
 score++;
+enemy.speed += 0.2;
 }
 
 let dx = player.x - enemy.x;
 let dy = player.y - enemy.y;
-let distance = Math.sqrt(dx*dx + dy*dy);
+let dist = Math.sqrt(dx*dx + dy*dy);
 
-if(distance < player.size + enemy.size){
-gameOver = true;
-alert("Game Over! Score: " + score);
+if(dist < player.size + enemy.size){
+endGame();
+return;
 }
 
 drawCircle(player,"cyan");
@@ -49,19 +145,35 @@ drawCircle(enemy,"red");
 
 ctx.fillStyle="white";
 ctx.fillText("Score: "+score,10,20);
+ctx.fillText("Best: "+bestScore,10,40);
 
 requestAnimationFrame(update);
 }
 
-canvas.addEventListener("touchmove",function(e){
-let rect = canvas.getBoundingClientRect();
-player.y = e.touches[0].clientY - rect.top;
-});
+function drawCircle(obj,color){
+ctx.beginPath();
+ctx.arc(obj.x,obj.y,obj.size,0,Math.PI*2);
+ctx.fillStyle=color;
+ctx.fill();
+}
 
-canvas.addEventListener("mousemove",function(e){
-let rect = canvas.getBoundingClientRect();
-player.y = e.clientY - rect.top;
-});
+function endGame(){
+if(score > bestScore) bestScore = score;
 
-update();
+if(score >= 10){
+elo += 25;
+}else{
+elo -= 10;
+}
+
+document.getElementById("elo").innerText = elo;
+
+alert("انتهت المباراة 🔥\nScore: "+score+"\nELO الحالي: "+elo);
+
+gameStarted = false;
+document.getElementById("arena").innerHTML="🎮 Arena جاهزة للمعركة";
+}
 </script>
+
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Water Sort Store Edition</title>
+<style>
+body{margin:0;font-family:Arial;background:linear-gradient(#4facfe,#00f2fe);text-align:center;}
+.screen{display:none;padding:20px;}
+.active{display:block;}
+button{padding:10px 20px;margin:10px;border:none;border-radius:20px;font-weight:bold;cursor:pointer;}
+.topbar{display:flex;justify-content:space-around;color:white;font-weight:bold;margin-bottom:10px;}
+.level-btn{width:60px;height:60px;border-radius:50%;margin:8px;font-weight:bold;}
+.locked{background:gray;}
+.unlocked{background:gold;}
+canvas{background:rgba(255,255,255,0.2);border-radius:20px;}
+</style>
+</head>
+<body>
+
+<!-- MENU -->
+<div id="menu" class="screen active">
+<h1>💧 Water Sort</h1>
+<button onclick="openMap()">▶️ ابدأ</button>
+<button onclick="openShop()">🛒 المتجر</button>
+</div>
+
+<!-- MAP -->
+<div id="map" class="screen">
+<h2>🗺️ خريطة المراحل</h2>
+<div id="levels"></div>
+<button onclick="goMenu()">⬅ رجوع</button>
+</div>
+
+<!-- GAME -->
+<div id="game" class="screen">
+<div class="topbar">
+<div>المستوى: <span id="levelNum"></span></div>
+<div>💰 <span id="coins"></span></div>
+<div>❤️ <span id="hearts"></span></div>
+</div>
+<canvas id="canvas" width="400" height="450"></canvas>
+<br>
+<button onclick="exitGame()">⬅ خروج</button>
+</div>
+
+<!-- SHOP -->
+<div id="shop" class="screen">
+<h2>🛒 المتجر</h2>
+<p>شراء طاقة = 50 عملة</p>
+<button onclick="buyHeart()">شراء ❤️</button>
+<br>
+<button onclick="goMenu()">⬅ رجوع</button>
+</div>
+
+<script>
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+const CAPACITY=4;
+
+let currentLevel=1;
+let unlockedLevel=parseInt(localStorage.getItem("unlockedLevel"))||1;
+let coins=parseInt(localStorage.getItem("coins"))||100;
+let hearts=parseInt(localStorage.getItem("hearts"))||3;
+
+let tubes=[];
+let selected=null;
+
+function save(){
+localStorage.setItem("unlockedLevel",unlockedLevel);
+localStorage.setItem("coins",coins);
+localStorage.setItem("hearts",hearts);
+}
+
+function switchScreen(id){
+document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+}
+
+function openMap(){switchScreen("map");loadLevels();}
+function openShop(){switchScreen("shop");}
+function goMenu(){switchScreen("menu");}
+
+function loadLevels(){
+const container=document.getElementById("levels");
+container.innerHTML="";
+for(let i=1;i<=20;i++){
+let btn=document.createElement("button");
+btn.textContent=i;
+btn.className="level-btn";
+if(i<=unlockedLevel){
+btn.classList.add("unlocked");
+btn.onclick=()=>startLevel(i);
+}else{
+btn.classList.add("locked");
+}
+container.appendChild(btn);
+}
+}
+
+function startLevel(num){
+currentLevel=num;
+document.getElementById("levelNum").textContent=currentLevel;
+generateLevel(num);
+updateTop();
+switchScreen("game");
+draw();
+}
+
+function exitGame(){
+if(currentLevel===unlockedLevel) unlockedLevel++;
+save();
+openMap();
+}
+
+function updateTop(){
+document.getElementById("coins").textContent=coins;
+document.getElementById("hearts").textContent=hearts;
+}
+
+function buyHeart(){
+if(coins>=50){
+coins-=50;
+hearts++;
+save();
+updateTop();
+alert("تم شراء طاقة!");
+}else{
+alert("عملات غير كافية!");
+}
+}
+
+function generateLevel(lvl){
+let colorsCount=3+Math.floor(lvl/3);
+let colors=[];
+for(let i=0;i<colorsCount;i++){
+let c=`hsl(${Math.random()*360},70%,55%)`;
+for(let j=0;j<CAPACITY;j++) colors.push(c);
+}
+colors.sort(()=>Math.random()-0.5);
+tubes=[];
+for(let i=0;i<colorsCount;i++){
+tubes.push(colors.splice(0,CAPACITY));
+}
+tubes.push([]);
+tubes.push([]);
+selected=null;
+}
+
+canvas.addEventListener("click",e=>{
+let rect=canvas.getBoundingClientRect();
+let x=e.clientX-rect.left;
+let index=Math.floor((x-30)/60);
+if(index>=0 && index<tubes.length) clickTube(index);
+});
+
+function clickTube(i){
+if(selected===null){
+if(tubes[i].length===0) return;
+selected=i;
+}else{
+if(selected===i){selected=null;}
+else{
+pour(selected,i);
+selected=null;
+}
+}
+draw();
+}
+
+function pour(from,to){
+if(tubes[from].length===0) return;
+if(tubes[to].length>=CAPACITY) return;
+
+let color=tubes[from][tubes[from].length-1];
+
+if(tubes[to].length===0 || tubes[to][tubes[to].length-1]===color){
+tubes[to].push(tubes[from].pop());
+checkWin();
+}else{
+loseHeart();
+}
+}
+
+function loseHeart(){
+hearts--;
+if(hearts<=0){
+alert("انتهت الطاقات!");
+hearts=3;
+coins=0;
+unlockedLevel=1;
+goMenu();
+}
+save();
+updateTop();
+}
+
+function checkWin(){
+let win=tubes.every(tube=>
+tube.length===0 ||
+(tube.length===CAPACITY &&
+tube.every(c=>c===tube[0]))
+);
+if(win){
+coins+=20;
+if(currentLevel===unlockedLevel) unlockedLevel++;
+save();
+updateTop();
+alert("🎉 فزت!");
+openMap();
+}
+}
+
+function draw(){
+ctx.clearRect(0,0,canvas.width,canvas.height);
+tubes.forEach((tube,i)=>{
+let x=30+i*60;
+let y=100;
+ctx.lineWidth=3;
+ctx.strokeStyle="white";
+ctx.strokeRect(x,y,40,200);
+tube.forEach((color,j)=>{
+ctx.fillStyle=color;
+ctx.fillRect(x,y+200-(j+1)*50,40,50);
+});
+if(selected===i){
+ctx.strokeStyle="yellow";
+ctx.strokeRect(x-3,y-3,46,206);
+}
+});
+}
+
+updateTop();
+</script>
+</body>
+</html>

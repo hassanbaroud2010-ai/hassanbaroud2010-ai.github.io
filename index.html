@@ -196,21 +196,36 @@ updateTop();
 }
 
 function checkWin(){
-let win=tubes.every(tube=>
-tube.length===0 ||
-(tube.length===CAPACITY &&
-tube.every(c=>c===tube[0]))
-);
-if(win){
-coins+=20;
-if(currentLevel===unlockedLevel) unlockedLevel++;
-save();
-updateTop();
-alert("🎉 فزت!");
-openMap();
-}
-}
 
+    let win = tubes.every(tube =>
+        tube.length === 0 ||
+        (tube.length === CAPACITY &&
+         tube.every(c => c === tube[0]))
+    );
+
+    if(win){
+
+        coins += 20;
+
+        if(currentLevel === unlockedLevel){
+            unlockedLevel++;
+        }
+
+        // 🔥 حفظ النتيجة أونلاين
+        let playerName = prompt("اكتب اسمك للترتيب العالمي:");
+
+        if(playerName && typeof saveScoreOnline === "function"){
+            saveScoreOnline(playerName, coins)
+                .then(() => console.log("Saved online"))
+                .catch(err => console.error(err));
+        }
+
+        save();
+        updateTop();
+        alert("🎉 فزت!");
+        openMap();
+    }
+}
 function draw(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
 tubes.forEach((tube,i)=>{
